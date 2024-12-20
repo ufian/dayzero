@@ -5,7 +5,6 @@
 //  Created by ufian on 12/16/24.
 //
 
-
 import SwiftUI
 import AppKit
 
@@ -13,33 +12,57 @@ class MenuBarManager: ObservableObject {
     private var statusItem: NSStatusItem
     private var formatter: DateFormatter
     private var date: Date
+    private var maxWidth: CGFloat
 
+    private func startSynchronizedTimer() {
+        let timer = Timer(fire: Date(), interval: 1.0, repeats: true) { _ in
+            self.updateTime()
+        }
+        // Add timer to the main run loop
+        RunLoop.main.add(timer, forMode: .common)
+    }
+    
     init() {
-        // Создаем элемент статус-бара
+        // Create status bar item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
         date = Date()
+        maxWidth = 50;
 
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "MenuBar Calendar")
             button.title = " \(currentTime())"
             button.imagePosition = .imageLeading
+            button.alignment = .left
         }
 
-        // Настраиваем меню
+        // Menu configuration
         statusItem.menu = constructMenu()
 
-        // Таймер для обновления времени каждую секунду
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            self.updateTime()
-        }
+        // Start synchronized timer
+        startSynchronizedTimer()
     }
 
-    // Функция обновления времени
+    // Function to time update
     private func updateTime() {
         if let button = statusItem.button {
-            button.title = " \(currentTime())"
+            let timeString = " \(currentTime())";
+            
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 16)
+            ]
+            
+            let textWidth = (timeString as NSString).size(withAttributes: attributes).width
+            
+            let iconWidth: CGFloat = button.image?.size.width ?? 0
+            maxWidth = max(maxWidth, textWidth)
+            
+            statusItem.length = maxWidth + 24
+            
+            let attributedString = NSAttributedString(string: " \(timeString)", attributes: attributes)
+            button.attributedTitle = attributedString
+            button.alignment = .left
         }
     }
 
@@ -49,42 +72,25 @@ class MenuBarManager: ObservableObject {
     }
     
     private func createCalendarMenuItem() -> NSMenuItem {
-        // Создаем SwiftUI View
-        var calView = CalendarView()
-
-        // Оборачиваем SwiftUI View в NSHostingView
+        let calView = CalendarView()
         let hostingView = NSHostingView(rootView: calView)
-//        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        //hostingView.wantsLayer = true
-//        hostingView.layer?.borderWidth = 0 // Убедимся, что границы нет
-        //hostingView.layer?.backgroundColor = NSColor.clear.cgColor
-//        hostingView.focusRingType = .none
-//        hostingView.window?.makeFirstResponder(nil) // Снимаем фокус с представления
-
+        
         let fittingSize = hostingView.fittingSize
         hostingView.setFrameSize(fittingSize)
 
-        // Добавляем NSHostingView в NSMenuItem
-        var calendarItem = NSMenuItem()
+        let calendarItem = NSMenuItem()
         calendarItem.view = hostingView
-        
-
-
-        print("Calendar size - Width: \(fittingSize.width), Height: \(fittingSize.height)")
         return calendarItem
     }
-    // Конструирование меню с календарем
+
     private func constructMenu() -> NSMenu {
         let menu = NSMenu()
         
-        // Добавляем календарь
         let calendarItem = createCalendarMenuItem()
         menu.addItem(calendarItem)
         
-        // Разделитель
         menu.addItem(NSMenuItem.separator())
         
-        // Кнопка "Quit"
         let quitItem = NSMenuItem(title: "Quit", action: #selector(terminate), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
