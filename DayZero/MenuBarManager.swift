@@ -8,54 +8,53 @@
 import SwiftUI
 import AppKit
 
+import SwiftUI
+import AppKit
+
 class MenuBarManager: ObservableObject {
     private var statusItem: NSStatusItem
     private var formatter: DateFormatter
     private var date: Date
     private var maxWidth: CGFloat
+    private var settingsWindow: NSWindow?
+    
+    @AppStorage("timeFormat") private var timeFormat: String = "HH:mm:ss"
+    @AppStorage("fontSize") private var fontSize: Double = 16.0
 
     private func startSynchronizedTimer() {
         let timer = Timer(fire: Date(), interval: 1.0, repeats: true) { _ in
             self.updateTime()
         }
-        // Add timer to the main run loop
         RunLoop.main.add(timer, forMode: .common)
     }
     
     init() {
-        // Create status bar item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
         date = Date()
-        maxWidth = 50;
-
+        maxWidth = 50
+        
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "calendar", accessibilityDescription: "MenuBar Calendar")
             button.title = " \(currentTime())"
             button.imagePosition = .imageLeading
             button.alignment = .left
         }
-
-        // Menu configuration
+        
         statusItem.menu = constructMenu()
-
-        // Start synchronized timer
         startSynchronizedTimer()
     }
 
-    // Function to time update
     private func updateTime() {
         if let button = statusItem.button {
-            let timeString = " \(currentTime())";
+            formatter.dateFormat = timeFormat
+            let timeString = " \(currentTime())"
             
             let attributes: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 16)
+                .font: NSFont.systemFont(ofSize: CGFloat(fontSize))
             ]
             
             let textWidth = (timeString as NSString).size(withAttributes: attributes).width
-            
-            let iconWidth: CGFloat = button.image?.size.width ?? 0
             maxWidth = max(maxWidth, textWidth)
             
             statusItem.length = maxWidth + 24
@@ -91,6 +90,10 @@ class MenuBarManager: ObservableObject {
         
         menu.addItem(NSMenuItem.separator())
         
+        let settingsItem = NSMenuItem(title: "Settings", action: #selector(openSettings), keyEquivalent: "s")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+        
         let quitItem = NSMenuItem(title: "Quit", action: #selector(terminate), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
@@ -100,5 +103,23 @@ class MenuBarManager: ObservableObject {
     
     @objc private func terminate() {
         NSApp.terminate(nil)
+    }
+    
+    @objc private func openSettings() {
+        if settingsWindow == nil { // Создаем окно только если его нет
+            let settingsView = NSHostingController(rootView: SettingsView()) // Используем SettingsView
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 300, height: 200), // Указываем размеры окна
+                styleMask: [.titled, .closable, .resizable], // Стиль окна
+                backing: .buffered,
+                defer: false
+            )
+            window.title = "Settings"
+            window.contentView = settingsView.view // Устанавливаем содержимое окна
+            window.makeKeyAndOrderFront(nil) // Делаем окно активным
+            settingsWindow = window // Сохраняем ссылку на окно
+        } else {
+            settingsWindow?.makeKeyAndOrderFront(nil) // Показываем существующее окно
+        }
     }
 }
