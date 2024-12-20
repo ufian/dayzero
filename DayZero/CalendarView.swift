@@ -19,6 +19,6 @@ struct CalendarView: View {
         )
         .datePickerStyle(.graphical)
         .focusable(false)
-        .background(Color.clear)
+        .background(Color(NSColor.clear))
     }
 }

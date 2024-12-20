@@ -72,10 +72,13 @@ class MenuBarManager: ObservableObject {
     
     private func createCalendarMenuItem() -> NSMenuItem {
         let calView = CalendarView()
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.trailing, 8)
+        
         let hostingView = NSHostingView(rootView: calView)
         
         let fittingSize = hostingView.fittingSize
-        hostingView.setFrameSize(fittingSize)
+        hostingView.setFrameSize(NSSize(width: fittingSize.width + 8, height: fittingSize.height + 8))
 
         let calendarItem = NSMenuItem()
         calendarItem.view = hostingView
@@ -109,7 +112,7 @@ class MenuBarManager: ObservableObject {
         if settingsWindow == nil { // Создаем окно только если его нет
             let settingsView = NSHostingController(rootView: SettingsView()) // Используем SettingsView
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 300, height: 200), // Указываем размеры окна
+                contentRect: NSRect(x: 0, y: 0, width: 400, height: 200), // Указываем размеры окна
                 styleMask: [.titled, .closable, .resizable], // Стиль окна
                 backing: .buffered,
                 defer: false
